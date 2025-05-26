@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use(cors({
-  origin: ['https://fit-sync-psi.vercel.app/', 'http://localhost:8080'],// or whatever your React port is
+  origin: ['https://fit-sync-gilt.vercel.app/', 'http://localhost:8080'],// or whatever your React port is
   methods: ['GET','HEAD','PUT','PATCH','POST','DELETE'],
   allowedHeaders: ['Content-Type']
 }));
