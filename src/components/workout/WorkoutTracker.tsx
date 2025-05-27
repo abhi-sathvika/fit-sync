@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Camera } from '@mediapipe/camera_utils';
-import { Pose, Results } from '@mediapipe/pose';
+// import { Pose, Results } from '@mediapipe/pose';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
@@ -147,13 +147,18 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         }
 
         // Load MediaPipe from official CDN
-        referencePose = new Pose({
-          locateFile: (file) => {
-            console.log('Loading MediaPipe file:', file);
-            // Use the official MediaPipe CDN
-            return `https://mediapipe.dev/pose/${file}`;
-          },
+        // referencePose = new Pose({
+        //   locateFile: (file) => {
+        //     console.log('Loading MediaPipe file:', file);
+        //     // Use the official MediaPipe CDN
+        //     return `https://mediapipe.dev/pose/${file}`;
+        //   },
+        // });
+        const poseModule = await import('https://cdn.jsdelivr.net/npm/@mediapipe/pose');
+        referencePose = new poseModule.Pose({
+          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
         });
+
 
         // Wait for the model to load
         await new Promise((resolve, reject) => {
@@ -263,13 +268,18 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
     const initializePose = async () => {
       try {
         // Load MediaPipe from official CDN
-        userPose = new Pose({
-          locateFile: (file) => {
-            console.log('Loading MediaPipe file:', file);
-            // Use the official MediaPipe CDN
-            return `https://mediapipe.dev/pose/${file}`;
-          },
+        // userPose = new Pose({
+        //   locateFile: (file) => {
+        //     console.log('Loading MediaPipe file:', file);
+        //     // Use the official MediaPipe CDN
+        //     return `https://mediapipe.dev/pose/${file}`;
+        //   },
+        // });
+        const poseModule = await import('https://cdn.jsdelivr.net/npm/@mediapipe/pose');
+        userPose = new poseModule.Pose({
+          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
         });
+
 
         // Wait for the model to load
         await new Promise((resolve, reject) => {
