@@ -135,7 +135,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
     const referencePose = new Pose({
       locateFile: (file) => {
         console.log('Loading MediaPipe file:', file);
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
       },
     });
 
@@ -264,14 +264,14 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
     console.log('Initializing user pose detection, isUserTracking:', isUserTracking);
     if (!videoRef.current || !canvasRef.current || !isUserTracking) return;
 
-    const pose = new Pose({
+    const userPose = new Pose({
       locateFile: (file) => {
-        console.log('Loading MediaPipe file for user pose:', file);
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        console.log('Loading MediaPipe file:', file);
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
       },
     });
 
-    pose.setOptions({
+    userPose.setOptions({
       modelComplexity: 1,
       smoothLandmarks: true,
       enableSegmentation: true,
@@ -280,7 +280,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
       minTrackingConfidence: 0.5,
     });
 
-    pose.onResults((results) => {
+    userPose.onResults((results) => {
       if (!canvasRef.current) return;
       const canvasCtx = canvasRef.current.getContext('2d');
       if (!canvasCtx) return;
@@ -316,7 +316,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
     const camera = new Camera(videoRef.current, {
       onFrame: async () => {
         if (videoRef.current) {
-          await pose.send({ image: videoRef.current });
+          await userPose.send({ image: videoRef.current });
         }
       },
       width: 640,
@@ -331,7 +331,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
     return () => {
       console.log('Cleaning up user pose detection');
       camera.stop();
-      pose.close();
+      userPose.close();
     };
   }, [isUserTracking]);
 
