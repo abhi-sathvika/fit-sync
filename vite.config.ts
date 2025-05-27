@@ -19,4 +19,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: ['@mediapipe/pose', '@mediapipe/camera_utils'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/@mediapipe\/.*/, /node_modules/],
+    },
+  },
 }));

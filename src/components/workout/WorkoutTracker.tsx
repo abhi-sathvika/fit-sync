@@ -149,22 +149,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
           });
         }
 
-        // Create a script element to load MediaPipe
-        const script = document.createElement('script');
-        script.src = `${MEDIAPIPE_BASE_URL}/pose.js`;
-        script.async = true;
-        
-        await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-
-        // Now initialize the Pose detector
+        // Initialize the Pose detector
         referencePose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            return `${MEDIAPIPE_BASE_URL}/${file}`;
+            return `/node_modules/@mediapipe/pose/${file}`;
           },
         });
 
@@ -257,11 +246,6 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
       if (referencePose) {
         referencePose.close();
       }
-      // Remove the script element
-      const script = document.querySelector(`script[src="${MEDIAPIPE_BASE_URL}/pose.js"]`);
-      if (script) {
-        script.remove();
-      }
     };
   }, [isRefTracking, toast]);
 
@@ -274,22 +258,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
     const initializePose = async () => {
       try {
-        // Create a script element to load MediaPipe
-        const script = document.createElement('script');
-        script.src = `${MEDIAPIPE_BASE_URL}/pose.js`;
-        script.async = true;
-        
-        await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-
-        // Now initialize the Pose detector
+        // Initialize the Pose detector
         userPose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            return `${MEDIAPIPE_BASE_URL}/${file}`;
+            return `/node_modules/@mediapipe/pose/${file}`;
           },
         });
 
@@ -359,11 +332,6 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
           camera.stop();
           if (userPose) {
             userPose.close();
-          }
-          // Remove the script element
-          const script = document.querySelector(`script[src="${MEDIAPIPE_BASE_URL}/pose.js"]`);
-          if (script) {
-            script.remove();
           }
         };
       } catch (error) {
