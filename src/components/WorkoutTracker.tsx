@@ -11,6 +11,13 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getExerciseVideo } from '@/config/exercises';
 
+// Declare global Pose type
+declare global {
+  interface Window {
+    Pose: any;
+  }
+}
+
 interface WorkoutTrackerProps {
   exerciseName: string;
   difficulty: 'easy' | 'medium' | 'hard';
@@ -51,6 +58,12 @@ const LIMB_VECTORS = [
 const FRAME_INTERVAL = 30; // Process every 30th frame (2 frames per second at 60fps)
 let frameCount = 0;
 
+const CDN_URLS = [
+  'https://cdn.jsdelivr.net/npm/@mediapipe/pose',
+  'https://unpkg.com/@mediapipe/pose',
+  'https://cdnjs.cloudflare.com/ajax/libs/mediapipe/pose'
+];
+
 const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
   console.log('WorkoutTracker initialized with:', { exerciseName, difficulty });
   
@@ -73,6 +86,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
   const [mediaPipeError, setMediaPipeError] = useState<string | null>(null);
   const poseRef = useRef<any>(null);
   const referencePoseRef = useRef<any>(null);
+  const [cdnIndex, setCdnIndex] = useState(0);
 
   // Get the video path based on exercise name and difficulty
   const videoConfig = getExerciseVideo(exerciseName, difficulty);
@@ -80,28 +94,22 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
   // Load MediaPipe dynamically
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !window.Pose) return;
 
-    const loadMediaPipe = async () => {
+    const initializePose = async () => {
       try {
-        const mediapipe = await import('@mediapipe/pose');
-        const Pose = mediapipe.Pose;
-        
-        // Initialize user pose
-        poseRef.current = new Pose({
-          locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-          }
-        });
-
-        // Initialize reference pose
-        referencePoseRef.current = new Pose({
-          locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-          }
-        });
+        // Create pose instances with proper configuration
+        const createPoseInstance = () => {
+          return new window.Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+          });
+        };
 
         // Initialize both pose instances
+        poseRef.current = createPoseInstance();
+        referencePoseRef.current = createPoseInstance();
+
+        // Initialize both instances
         await Promise.all([
           poseRef.current.initialize(),
           referencePoseRef.current.initialize()
@@ -131,7 +139,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
       }
     };
 
-    loadMediaPipe();
+    initializePose();
 
     return () => {
       if (poseRef.current) {
