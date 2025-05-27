@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Camera } from '@mediapipe/camera_utils';
 import { Pose, Results } from '@mediapipe/pose';
@@ -70,290 +69,181 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
   console.log('User state:', user);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isMediaPipeLoaded, setIsMediaPipeLoaded] = useState(false);
+  const [mediaPipeError, setMediaPipeError] = useState<string | null>(null);
+  const poseRef = useRef<any>(null);
+  const referencePoseRef = useRef<any>(null);
 
   // Get the video path based on exercise name and difficulty
   const videoConfig = getExerciseVideo(exerciseName, difficulty);
   const referenceVideo = videoConfig?.path;
 
-  // Initialize camera on mount
+  // Load MediaPipe dynamically
   useEffect(() => {
-    console.log('Initializing camera on mount');
-    if (!videoRef.current || !canvasRef.current) {
-      console.log('User video or canvas not ready');
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
-    const initializeCamera = async () => {
+    const loadMediaPipe = async () => {
       try {
-        console.log('Requesting camera access');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640 },
-            height: { ideal: 480 }
+        const mediapipe = await import('@mediapipe/pose');
+        const Pose = mediapipe.Pose;
+        
+        // Initialize user pose
+        poseRef.current = new Pose({
+          locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
           }
         });
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadedmetadata = () => {
-            console.log('Camera stream loaded');
-            if (videoRef.current) {
-              videoRef.current.play();
-            }
-          };
-        }
-      } catch (err) {
-        console.error('Camera access error:', err);
-        setCameraError('Could not access camera. Please ensure you have granted camera permissions.');
+
+        // Initialize reference pose
+        referencePoseRef.current = new Pose({
+          locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+          }
+        });
+
+        // Initialize both pose instances
+        await Promise.all([
+          poseRef.current.initialize(),
+          referencePoseRef.current.initialize()
+        ]);
+
+        // Set options for both pose instances
+        [poseRef.current, referencePoseRef.current].forEach(pose => {
+          pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: true,
+            smoothSegmentation: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5,
+          });
+        });
+
+        setIsMediaPipeLoaded(true);
+      } catch (error) {
+        console.error('Error loading MediaPipe:', error);
+        setMediaPipeError('Failed to load pose detection. Please refresh the page.');
         toast({
-          title: "Camera Error",
-          description: "Could not access camera. Please ensure you have granted camera permissions.",
+          title: "Error",
+          description: "Failed to load pose detection. Please refresh the page.",
           variant: "destructive",
         });
       }
     };
 
-    initializeCamera();
+    loadMediaPipe();
 
     return () => {
-      console.log('Cleaning up camera stream');
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+      if (poseRef.current) {
+        poseRef.current.close();
+      }
+      if (referencePoseRef.current) {
+        referencePoseRef.current.close();
       }
     };
   }, [toast]);
 
   // Initialize reference video pose detection
   useEffect(() => {
-    console.log('Initializing reference video pose detection');
-    if (!referenceVideoRef.current || !referenceCanvasRef.current) {
-      console.log('Reference video or canvas not ready');
-      return;
-    }
+    if (!isMediaPipeLoaded || !referenceVideoRef.current || !referenceCanvasRef.current) return;
 
-    const initializePose = async () => {
-      try {
-        const referencePose = new Pose({
-          locateFile: (file) => {
-            console.log('Loading MediaPipe file:', file);
-            // return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
-          }
-        });
-
-        await referencePose.initialize();
-
-        referencePose.setOptions({
-          modelComplexity: 1,
-          smoothLandmarks: true,
-          enableSegmentation: true,
-          smoothSegmentation: true,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5,
-        });
-
-        referencePose.onResults((results) => {
-          if (!referenceCanvasRef.current) return;
-          const canvasCtx = referenceCanvasRef.current.getContext('2d');
-          if (!canvasCtx) return;
-          
-          if (results.poseLandmarks && isRefTracking) {
-            console.log('Reference pose detected, frame count:', frameCount);
-            if (frameCount % FRAME_INTERVAL === 0) {
-              console.log('Reference pose vector:', results.poseLandmarks);
-              setReferencePoseSequence(prev => [...prev, results.poseLandmarks]);
-            }
-            frameCount++;
-          }
-          canvasCtx.save();
-          canvasCtx.clearRect(0, 0, referenceCanvasRef.current.width, referenceCanvasRef.current.height);
-          canvasCtx.drawImage(results.image, 0, 0, referenceCanvasRef.current.width, referenceCanvasRef.current.height);
-          
-          if (results.poseLandmarks) {
-            drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
-              color: '#4CAF50',
-              lineWidth: 2,
-            });
-            drawLandmarks(canvasCtx, results.poseLandmarks, {
-              color: '#2196F3',
-              lineWidth: 1,
-            });
-          }
-          canvasCtx.restore();
-        });
-
-        // Process reference video frames
-        const processReferenceFrame = async () => {
-          if (referenceVideoRef.current && !referenceVideoRef.current.paused && isRefTracking) {
-            await referencePose.send({ image: referenceVideoRef.current });
-            requestAnimationFrame(processReferenceFrame);
-          }
-        };
-
-        if (isRefTracking) {
-          if (referenceVideoRef.current) {
-            referenceVideoRef.current.play();
-            requestAnimationFrame(processReferenceFrame);
-          }
-        } else {
-          if (referenceVideoRef.current) {
-            referenceVideoRef.current.pause();
-          }
-        }
-
-        return () => {
-          console.log('Cleaning up reference pose detection');
-          referencePose.close();
-        };
-      } catch (error) {
-        console.error('Error initializing pose:', error);
+    const processReferenceFrame = async () => {
+      if (referenceVideoRef.current && !referenceVideoRef.current.paused && isRefTracking) {
+        await referencePoseRef.current.send({ image: referenceVideoRef.current });
+        requestAnimationFrame(processReferenceFrame);
       }
     };
 
-    initializePose();
-  }, [isRefTracking]);
+    referencePoseRef.current.onResults((results) => {
+      if (!referenceCanvasRef.current) return;
+      const canvasCtx = referenceCanvasRef.current.getContext('2d');
+      if (!canvasCtx) return;
+      
+      if (results.poseLandmarks && isRefTracking) {
+        if (frameCount % FRAME_INTERVAL === 0) {
+          setReferencePoseSequence(prev => [...prev, results.poseLandmarks]);
+        }
+        frameCount++;
+      }
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, referenceCanvasRef.current.width, referenceCanvasRef.current.height);
+      canvasCtx.drawImage(results.image, 0, 0, referenceCanvasRef.current.width, referenceCanvasRef.current.height);
+      
+      if (results.poseLandmarks) {
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+          color: '#4CAF50',
+          lineWidth: 2,
+        });
+        drawLandmarks(canvasCtx, results.poseLandmarks, {
+          color: '#2196F3',
+          lineWidth: 1,
+        });
+      }
+      canvasCtx.restore();
+    });
+
+    if (isRefTracking) {
+      if (referenceVideoRef.current) {
+        referenceVideoRef.current.play();
+        requestAnimationFrame(processReferenceFrame);
+      }
+    } else {
+      if (referenceVideoRef.current) {
+        referenceVideoRef.current.pause();
+      }
+    }
+  }, [isMediaPipeLoaded, isRefTracking]);
 
   // Initialize user video and pose detection
   useEffect(() => {
-    console.log('Initializing user video, isUserTracking:', isUserTracking);
-    if (!videoRef.current || !canvasRef.current) {
-      console.log('User video or canvas not ready');
-      return;
-    }
+    if (!isMediaPipeLoaded || !videoRef.current || !canvasRef.current || !isUserTracking) return;
 
-    const initializeCamera = async () => {
-      try {
-        console.log('Requesting camera access');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          }
-        });
-        
+    const camera = new Camera(videoRef.current, {
+      onFrame: async () => {
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.onloadedmetadata = () => {
-            console.log('Camera stream loaded');
-            if (videoRef.current) {
-              videoRef.current.play();
-            }
-          };
+          await poseRef.current.send({ image: videoRef.current });
         }
-      } catch (err) {
-        console.error('Camera access error:', err);
-        setCameraError('Could not access camera. Please ensure you have granted camera permissions.');
-        toast({
-          title: "Camera Error",
-          description: "Could not access camera. Please ensure you have granted camera permissions.",
-          variant: "destructive",
+      },
+      width: 640,
+      height: 480,
+    });
+
+    poseRef.current.onResults((results) => {
+      if (!canvasRef.current) return;
+      const canvasCtx = canvasRef.current.getContext('2d');
+      if (!canvasCtx) return;
+      
+      if (results.poseLandmarks && isUserTracking) {
+        if (frameCount % FRAME_INTERVAL === 0) {
+          setUserPoseSequence(prev => [...prev, results.poseLandmarks]);
+        }
+        frameCount++;
+      }
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasRef.current.width, canvasRef.current.height);
+      
+      if (results.poseLandmarks) {
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
+          color: '#FF4081',
+          lineWidth: 2,
+        });
+        drawLandmarks(canvasCtx, results.poseLandmarks, {
+          color: '#FF0000',
+          lineWidth: 1,
         });
       }
-    };
+      canvasCtx.restore();
+    });
 
     if (isUserTracking) {
-      initializeCamera();
-    } else {
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
+      camera.start();
     }
 
     return () => {
-      console.log('Cleaning up camera stream');
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-      }
+      camera.stop();
     };
-  }, [isUserTracking, toast]);
-
-  useEffect(() => {
-    console.log('Initializing user pose detection, isUserTracking:', isUserTracking);
-    if (!videoRef.current || !canvasRef.current || !isUserTracking) return;
-
-    const initializePose = async () => {
-      try {
-        const pose = new Pose({
-          locateFile: (file) => {
-            console.log('Loading MediaPipe file for user pose:', file);
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-          }
-        });
-
-        await pose.initialize();
-
-        pose.setOptions({
-          modelComplexity: 1,
-          smoothLandmarks: true,
-          enableSegmentation: true,
-          smoothSegmentation: true,
-          minDetectionConfidence: 0.5,
-          minTrackingConfidence: 0.5,
-        });
-
-        pose.onResults((results) => {
-          if (!canvasRef.current) return;
-          const canvasCtx = canvasRef.current.getContext('2d');
-          if (!canvasCtx) return;
-          
-          if (results.poseLandmarks && isUserTracking) {
-            console.log('User pose detected, frame count:', frameCount);
-            if (frameCount % FRAME_INTERVAL === 0) {
-              console.log('User pose visibility:', results.poseLandmarks.map(lm => lm.visibility));
-              console.log('Collecting user pose frame', results.poseLandmarks);
-              setUserPoseSequence(prev => [...prev, results.poseLandmarks]);
-            }
-            frameCount++;
-          }
-          canvasCtx.save();
-          canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          canvasCtx.drawImage(results.image, 0, 0, canvasRef.current.width, canvasRef.current.height);
-          
-          if (results.poseLandmarks) {
-            drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {
-              color: '#FF4081',
-              lineWidth: 2,
-            });
-            drawLandmarks(canvasCtx, results.poseLandmarks, {
-              color: '#FF0000',
-              lineWidth: 1,
-            });
-          }
-          canvasCtx.restore();
-        });
-
-        const camera = new Camera(videoRef.current, {
-          onFrame: async () => {
-            if (videoRef.current) {
-              await pose.send({ image: videoRef.current });
-            }
-          },
-          width: 640,
-          height: 480,
-        });
-
-        if (isUserTracking) {
-          console.log('Starting camera for pose detection');
-          camera.start();
-        }
-
-        return () => {
-          console.log('Cleaning up user pose detection');
-          camera.stop();
-          pose.close();
-        };
-      } catch (error) {
-        console.error('Error initializing pose:', error);
-      }
-    };
-
-    initializePose();
-  }, [isUserTracking]);
+  }, [isMediaPipeLoaded, isUserTracking]);
 
   const startTracking = () => {
     console.log('Starting workout tracking');
@@ -522,76 +412,88 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="relative">
-            <video
-              ref={videoRef}
-              className="w-full rounded-lg"
-              playsInline
-              style={{ display: 'block', transform: 'scaleX(-1)' }}
-            />
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full"
-              width={640}
-              height={480}
-              style={{ display: 'block', transform: 'scaleX(-1)' }}
-            />
-            {cameraError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-red-100 rounded-lg">
-                <p className="text-red-600 text-center p-4">{cameraError}</p>
+        {mediaPipeError ? (
+          <div className="p-4 bg-red-100 rounded-lg">
+            <p className="text-red-600 text-center">{mediaPipeError}</p>
+          </div>
+        ) : !isMediaPipeLoaded ? (
+          <div className="p-4 bg-gray-100 rounded-lg">
+            <p className="text-gray-600 text-center">Loading pose detection...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative">
+                <video
+                  ref={videoRef}
+                  className="w-full rounded-lg"
+                  playsInline
+                  style={{ display: 'block', transform: 'scaleX(-1)' }}
+                />
+                <canvas
+                  ref={canvasRef}
+                  className="absolute top-0 left-0 w-full h-full"
+                  width={640}
+                  height={480}
+                  style={{ display: 'block', transform: 'scaleX(-1)' }}
+                />
+                {cameraError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-red-100 rounded-lg">
+                    <p className="text-red-600 text-center p-4">{cameraError}</p>
+                  </div>
+                )}
+              </div>
+              {referenceVideo && (
+                <div className="relative">
+                  <video
+                    ref={referenceVideoRef}
+                    src={referenceVideo}
+                    className="w-full rounded-lg"
+                    loop
+                    muted
+                    width={640}
+                    height={480}
+                  />
+                  <canvas
+                    ref={referenceCanvasRef}
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                    width={640}
+                    height={480}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-center space-x-4">
+              {!isUserTracking && !isRefTracking ? (
+                <Button onClick={startTracking} className="bg-buddy-purple hover:bg-buddy-purple-dark">
+                  Start Workout
+                </Button>
+              ) : (
+                <Button onClick={stopTracking} variant="destructive">
+                  Stop Workout
+                </Button>
+              )}
+              <Button 
+                onClick={submitScore} 
+                disabled={isUserTracking || isRefTracking || userPoseSequence.length === 0 || referencePoseSequence.length === 0}
+                className="bg-buddy-purple hover:bg-buddy-purple-dark"
+              >
+                Calculate Score
+              </Button>
+            </div>
+            {score !== null && bestScore !== null && (
+              <div className="mt-6 p-4 bg-buddy-purple-light/20 rounded-lg">
+                <h3 className="text-lg font-semibold text-center mb-2">Similarity Score</h3>
+                <div className="grid grid-cols-1 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-buddy-purple">{(score * 100).toFixed(2)}%</p>
+                  </div>
+                  
+                </div>
               </div>
             )}
-          </div>
-          {referenceVideo && (
-            <div className="relative">
-              <video
-                ref={referenceVideoRef}
-                src={referenceVideo}
-                className="w-full rounded-lg"
-                loop
-                muted
-                width={640}
-                height={480}
-              />
-              <canvas
-                ref={referenceCanvasRef}
-                className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                width={640}
-                height={480}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-center space-x-4">
-          {!isUserTracking && !isRefTracking ? (
-            <Button onClick={startTracking} className="bg-buddy-purple hover:bg-buddy-purple-dark">
-              Start Workout
-            </Button>
-          ) : (
-            <Button onClick={stopTracking} variant="destructive">
-              Stop Workout
-            </Button>
-          )}
-          <Button 
-            onClick={submitScore} 
-            disabled={isUserTracking || isRefTracking || userPoseSequence.length === 0 || referencePoseSequence.length === 0}
-            className="bg-buddy-purple hover:bg-buddy-purple-dark"
-          >
-            Calculate Score
-          </Button>
-        </div>
-        {score !== null && bestScore !== null && (
-          <div className="mt-6 p-4 bg-buddy-purple-light/20 rounded-lg">
-            <h3 className="text-lg font-semibold text-center mb-2">Similarity Score</h3>
-            <div className="grid grid-cols-1 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-buddy-purple">{(score * 100).toFixed(2)}%</p>
-              </div>
-              
-            </div>
-          </div>
+          </>
         )}
       </CardContent>
     </Card>
