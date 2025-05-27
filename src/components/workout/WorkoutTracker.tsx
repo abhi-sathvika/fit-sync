@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Camera } from '@mediapipe/camera_utils';
-// import { Pose, Results } from '@mediapipe/pose';
+import { Pose, Results } from '@mediapipe/pose';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
@@ -50,6 +50,9 @@ const LIMB_VECTORS = [
 
 const FRAME_INTERVAL = 30; // Process every 30th frame (2 frames per second at 60fps)
 let frameCount = 0;
+
+// Add this at the top level of the file, outside the component
+const MEDIAPIPE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404';
 
 const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
   console.log('WorkoutTracker initialized with:', { exerciseName, difficulty });
@@ -146,27 +149,26 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
           });
         }
 
-        // Load MediaPipe from official CDN
-        // referencePose = new Pose({
-        //   locateFile: (file) => {
-        //     console.log('Loading MediaPipe file:', file);
-        //     // Use the official MediaPipe CDN
-        //     return `https://mediapipe.dev/pose/${file}`;
-        //   },
-        // });
-        const poseModule = await import('https://cdn.jsdelivr.net/npm/@mediapipe/pose');
-        referencePose = new poseModule.Pose({
-          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-        });
-
-
-        // Wait for the model to load
+        // Create a script element to load MediaPipe
+        const script = document.createElement('script');
+        script.src = `${MEDIAPIPE_BASE_URL}/pose.js`;
+        script.async = true;
+        
         await new Promise((resolve, reject) => {
-          if (!referencePose) return reject('No pose instance');
-          referencePose.initialize()
-            .then(resolve)
-            .catch(reject);
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
         });
+
+        // Now initialize the Pose detector
+        referencePose = new Pose({
+          locateFile: (file) => {
+            console.log('Loading MediaPipe file:', file);
+            return `${MEDIAPIPE_BASE_URL}/${file}`;
+          },
+        });
+
+        await referencePose.initialize();
         
         referencePose.setOptions({
           modelComplexity: 1,
@@ -255,6 +257,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
       if (referencePose) {
         referencePose.close();
       }
+      // Remove the script element
+      const script = document.querySelector(`script[src="${MEDIAPIPE_BASE_URL}/pose.js"]`);
+      if (script) {
+        script.remove();
+      }
     };
   }, [isRefTracking, toast]);
 
@@ -267,27 +274,26 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
     const initializePose = async () => {
       try {
-        // Load MediaPipe from official CDN
-        // userPose = new Pose({
-        //   locateFile: (file) => {
-        //     console.log('Loading MediaPipe file:', file);
-        //     // Use the official MediaPipe CDN
-        //     return `https://mediapipe.dev/pose/${file}`;
-        //   },
-        // });
-        const poseModule = await import('https://cdn.jsdelivr.net/npm/@mediapipe/pose');
-        userPose = new poseModule.Pose({
-          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
-        });
-
-
-        // Wait for the model to load
+        // Create a script element to load MediaPipe
+        const script = document.createElement('script');
+        script.src = `${MEDIAPIPE_BASE_URL}/pose.js`;
+        script.async = true;
+        
         await new Promise((resolve, reject) => {
-          if (!userPose) return reject('No pose instance');
-          userPose.initialize()
-            .then(resolve)
-            .catch(reject);
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
         });
+
+        // Now initialize the Pose detector
+        userPose = new Pose({
+          locateFile: (file) => {
+            console.log('Loading MediaPipe file:', file);
+            return `${MEDIAPIPE_BASE_URL}/${file}`;
+          },
+        });
+
+        await userPose.initialize();
 
         userPose.setOptions({
           modelComplexity: 1,
@@ -353,6 +359,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
           camera.stop();
           if (userPose) {
             userPose.close();
+          }
+          // Remove the script element
+          const script = document.querySelector(`script[src="${MEDIAPIPE_BASE_URL}/pose.js"]`);
+          if (script) {
+            script.remove();
           }
         };
       } catch (error) {
