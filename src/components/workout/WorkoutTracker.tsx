@@ -146,15 +146,22 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
           });
         }
 
-        // Load MediaPipe from Google's CDN
+        // Load MediaPipe from official CDN
         referencePose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
+            // Use the official MediaPipe CDN
+            return `https://mediapipe.dev/pose/${file}`;
           },
         });
 
-        await referencePose.initialize();
+        // Wait for the model to load
+        await new Promise((resolve, reject) => {
+          if (!referencePose) return reject('No pose instance');
+          referencePose.initialize()
+            .then(resolve)
+            .catch(reject);
+        });
         
         referencePose.setOptions({
           modelComplexity: 1,
@@ -255,15 +262,22 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
     const initializePose = async () => {
       try {
-        // Load MediaPipe from Google's CDN
+        // Load MediaPipe from official CDN
         userPose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
+            // Use the official MediaPipe CDN
+            return `https://mediapipe.dev/pose/${file}`;
           },
         });
 
-        await userPose.initialize();
+        // Wait for the model to load
+        await new Promise((resolve, reject) => {
+          if (!userPose) return reject('No pose instance');
+          userPose.initialize()
+            .then(resolve)
+            .catch(reject);
+        });
 
         userPose.setOptions({
           modelComplexity: 1,
