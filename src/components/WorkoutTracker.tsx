@@ -94,12 +94,32 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
   // Load MediaPipe dynamically
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.Pose) return;
+    if (typeof window === 'undefined') return;
+
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+
+    const waitForMediaPipe = () => {
+      return new Promise<void>((resolve, reject) => {
+        if (window.Pose) {
+          resolve();
+        } else {
+          reject(new Error('MediaPipe not loaded'));
+        }
+      });
+    };
 
     const initializePose = async () => {
       try {
+        // Wait for MediaPipe to be available
+        await waitForMediaPipe();
+
         // Create pose instances with proper configuration
         const createPoseInstance = () => {
+          if (!window.Pose) {
+            throw new Error('MediaPipe Pose not available');
+          }
           return new window.Pose({
             locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
           });
@@ -130,12 +150,19 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         setIsMediaPipeLoaded(true);
       } catch (error) {
         console.error('Error loading MediaPipe:', error);
-        setMediaPipeError('Failed to load pose detection. Please refresh the page.');
-        toast({
-          title: "Error",
-          description: "Failed to load pose detection. Please refresh the page.",
-          variant: "destructive",
-        });
+        
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying MediaPipe initialization (${retryCount}/${maxRetries})...`);
+          setTimeout(initializePose, retryDelay);
+        } else {
+          setMediaPipeError('Failed to load pose detection. Please refresh the page.');
+          toast({
+            title: "Error",
+            description: "Failed to load pose detection. Please refresh the page.",
+            variant: "destructive",
+          });
+        }
       }
     };
 
