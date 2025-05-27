@@ -136,11 +136,21 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
     const initializePose = async () => {
       try {
+        // First ensure the reference video is loaded
+        if (referenceVideoRef.current) {
+          await new Promise((resolve, reject) => {
+            if (!referenceVideoRef.current) return reject('No video element');
+            referenceVideoRef.current.onloadeddata = resolve;
+            referenceVideoRef.current.onerror = reject;
+            referenceVideoRef.current.load();
+          });
+        }
+
+        // Load MediaPipe from Google's CDN
         referencePose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            // Use unpkg CDN instead of jsdelivr
-            return `https://unpkg.com/@mediapipe/pose@0.5.1675469404/${file}`;
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
           },
         });
 
@@ -188,15 +198,28 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         // Process reference video frames
         const processReferenceFrame = async () => {
           if (referenceVideoRef.current && !referenceVideoRef.current.paused && isRefTracking && referencePose) {
-            await referencePose.send({ image: referenceVideoRef.current });
-            requestAnimationFrame(processReferenceFrame);
+            try {
+              await referencePose.send({ image: referenceVideoRef.current });
+              requestAnimationFrame(processReferenceFrame);
+            } catch (error) {
+              console.error('Error processing reference frame:', error);
+            }
           }
         };
 
         if (isRefTracking) {
           if (referenceVideoRef.current) {
-            referenceVideoRef.current.play();
-            requestAnimationFrame(processReferenceFrame);
+            try {
+              await referenceVideoRef.current.play();
+              requestAnimationFrame(processReferenceFrame);
+            } catch (error) {
+              console.error('Error playing reference video:', error);
+              toast({
+                title: "Error",
+                description: "Failed to play reference video. Please try again.",
+                variant: "destructive",
+              });
+            }
           }
         } else {
           if (referenceVideoRef.current) {
@@ -207,7 +230,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         console.error('Error initializing MediaPipe Pose:', error);
         toast({
           title: "Error",
-          description: "Failed to initialize pose detection. Please refresh the page.",
+          description: "Failed to initialize pose detection. Please try again.",
           variant: "destructive",
         });
       }
@@ -232,11 +255,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
     const initializePose = async () => {
       try {
+        // Load MediaPipe from Google's CDN
         userPose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            // Use unpkg CDN instead of jsdelivr
-            return `https://unpkg.com/@mediapipe/pose@0.5.1675469404/${file}`;
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
           },
         });
 
@@ -285,7 +308,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         const camera = new Camera(videoRef.current, {
           onFrame: async () => {
             if (videoRef.current && userPose) {
-              await userPose.send({ image: videoRef.current });
+              try {
+                await userPose.send({ image: videoRef.current });
+              } catch (error) {
+                console.error('Error processing user frame:', error);
+              }
             }
           },
           width: 640,
@@ -308,7 +335,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         console.error('Error initializing MediaPipe Pose:', error);
         toast({
           title: "Error",
-          description: "Failed to initialize pose detection. Please refresh the page.",
+          description: "Failed to initialize pose detection. Please try again.",
           variant: "destructive",
         });
       }
