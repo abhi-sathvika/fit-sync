@@ -20,11 +20,11 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['@mediapipe/pose', '@mediapipe/camera_utils'],
+    include: ['@mediapipe/camera_utils'],
   },
   build: {
     commonjsOptions: {
-      include: [/@mediapipe\/.*/, /node_modules/],
+      include: [/node_modules/],
     },
   },
 }));
