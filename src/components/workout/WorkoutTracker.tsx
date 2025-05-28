@@ -52,7 +52,7 @@ const FRAME_INTERVAL = 30; // Process every 30th frame (2 frames per second at 6
 let frameCount = 0;
 
 // Add this at the top level of the file, outside the component
-const MEDIAPIPE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404';
+// const MEDIAPIPE_BASE_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404';
 
 const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
   console.log('WorkoutTracker initialized with:', { exerciseName, difficulty });
@@ -150,10 +150,17 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         }
 
         // Initialize the Pose detector
+        // referencePose = new Pose({
+        //   locateFile: (file) => {
+        //     console.log('Loading MediaPipe file:', file);
+        //     return `/node_modules/@mediapipe/pose/${file}`;
+        //   },
+        // });
+
         referencePose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            return `/node_modules/@mediapipe/pose/${file}`;
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
           },
         });
 
@@ -259,10 +266,16 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
     const initializePose = async () => {
       try {
         // Initialize the Pose detector
+        // userPose = new Pose({
+        //   locateFile: (file) => {
+        //     console.log('Loading MediaPipe file:', file);
+        //     return `/node_modules/@mediapipe/pose/${file}`;
+        //   },
+        // });
         userPose = new Pose({
           locateFile: (file) => {
             console.log('Loading MediaPipe file:', file);
-            return `/node_modules/@mediapipe/pose/${file}`;
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`;
           },
         });
 
