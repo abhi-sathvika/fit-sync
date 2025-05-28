@@ -61,29 +61,29 @@ let frameCount = 0;
 const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
  console.log('WorkoutTracker initialized with:', { exerciseName, difficulty });
   const videoRef = useRef<HTMLVideoElement>(null);
- const referenceVideoRef = useRef<HTMLVideoElement>(null);
- const canvasRef = useRef<HTMLCanvasElement>(null);
- const referenceCanvasRef = useRef<HTMLCanvasElement>(null);
- const [isUserTracking, setIsUserTracking] = useState(false);
- const [isRefTracking, setIsRefTracking] = useState(false);
- const [cameraError, setCameraError] = useState<string | null>(null);
- const [userPoseSequence, setUserPoseSequence] = useState<any[][]>([]);
- const [referencePoseSequence, setReferencePoseSequence] = useState<any[][]>([]);
- const [score, setScore] = useState<number | null>(null);
- const [bestScore, setBestScore] = useState<number | null>(null);
- const user = useUser();
+  const referenceVideoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const referenceCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [isUserTracking, setIsUserTracking] = useState(false);
+  const [isRefTracking, setIsRefTracking] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [userPoseSequence, setUserPoseSequence] = useState<any[][]>([]);
+  const [referencePoseSequence, setReferencePoseSequence] = useState<any[][]>([]);
+  const [score, setScore] = useState<number | null>(null);
+  const [bestScore, setBestScore] = useState<number | null>(null);
+  const user = useUser();
  console.log('User state:', user);
- const { toast } = useToast();
- const navigate = useNavigate();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
 
  // Get the video path based on exercise name and difficulty
- const videoConfig = getExerciseVideo(exerciseName, difficulty);
- const referenceVideo = videoConfig?.path;
+  const videoConfig = getExerciseVideo(exerciseName, difficulty);
+  const referenceVideo = videoConfig?.path;
 
 
- // Initialize camera on mount
- useEffect(() => {
+  // Initialize camera on mount
+  useEffect(() => {
    console.log('Initializing camera on mount');
    if (!videoRef.current || !canvasRef.current) {
      console.log('User video or canvas not ready');
@@ -102,16 +102,16 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
          }
        });
       
-       if (videoRef.current) {
-         videoRef.current.srcObject = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
          videoRef.current.onloadedmetadata = () => {
            console.log('Camera stream loaded');
            if (videoRef.current) {
              videoRef.current.play();
            }
          };
-       }
-     } catch (err) {
+        }
+      } catch (err) {
        console.error('Camera access error:', err);
        setCameraError('Could not access camera. Please ensure you have granted camera permissions.');
        toast({
@@ -133,11 +133,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
        stream.getTracks().forEach(track => track.stop());
      }
    };
- }, [toast]);
+  }, [toast]);
 
 
- // Initialize reference video pose detection
- useEffect(() => {
+  // Initialize reference video pose detection
+  useEffect(() => {
    console.log('Initializing reference video pose detection');
    if (!referenceVideoRef.current || !referenceCanvasRef.current) {
      console.log('Reference video or canvas not ready');
@@ -161,15 +161,15 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
        }
 
        // Load the Pose script and get the constructor
-       await loadPoseScript();
-       const Pose = (window as any).Pose;
+        await loadPoseScript();
+        const Pose = (window as any).Pose;
 
        // Initialize the Pose detector
        referencePose = new Pose({
          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
        });
 
-       await referencePose.initialize();
+        await referencePose.initialize();
       
        referencePose.setOptions({
          modelComplexity: 1,
@@ -186,14 +186,14 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
          const canvasCtx = referenceCanvasRef.current.getContext('2d');
          if (!canvasCtx) return;
         
-         if (results.poseLandmarks && isRefTracking) {
+          if (results.poseLandmarks && isRefTracking) {
            console.log('Reference pose detected, frame count:', frameCount);
            if (frameCount % FRAME_INTERVAL === 0) {
              console.log('Reference pose vector:', results.poseLandmarks);
              setReferencePoseSequence(prev => [...prev, results.poseLandmarks]);
            }
-           frameCount++;
-         }
+            frameCount++;
+          }
          canvasCtx.save();
          canvasCtx.clearRect(0, 0, referenceCanvasRef.current.width, referenceCanvasRef.current.height);
          canvasCtx.drawImage(results.image, 0, 0, referenceCanvasRef.current.width, referenceCanvasRef.current.height);
@@ -225,12 +225,12 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
        };
 
 
-       if (isRefTracking) {
+        if (isRefTracking) {
          if (referenceVideoRef.current) {
            try {
              await referenceVideoRef.current.play();
              requestAnimationFrame(processReferenceFrame);
-           } catch (error) {
+      } catch (error) {
              console.error('Error playing reference video:', error);
              toast({
                title: "Error",
@@ -264,30 +264,36 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
        referencePose.close();
      }
    };
- }, [isRefTracking, toast]);
+  }, [isRefTracking, toast]);
 
 
  // Initialize user video and pose detection
- useEffect(() => {
+  useEffect(() => {
    console.log('Initializing user pose detection, isUserTracking:', isUserTracking);
-   if (!videoRef.current || !canvasRef.current || !isUserTracking) return;
+    if (!videoRef.current || !canvasRef.current || !isUserTracking) return;
 
 
    let userPose: any = null;
 
 
    const initializePose = async () => {
-     try {
+      try {
        // Load the Pose script and get the constructor
-       await loadPoseScript();
-       const Pose = (window as any).Pose;
+        await loadPoseScript();
+        const Pose = (window as any).Pose;
 
        // Initialize the Pose detector
        userPose = new Pose({
          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
        });
 
-       await userPose.initialize();
+
+       // Wait for WASM to be ready
+       await new Promise((resolve) => setTimeout(resolve, 1000));
+
+
+        await userPose.initialize();
+
 
        userPose.setOptions({
          modelComplexity: 1,
@@ -348,7 +354,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
 
        if (isUserTracking) {
          console.log('Starting camera for pose detection');
-         camera.start();
+        camera.start();
        }
 
 
@@ -359,7 +365,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
            userPose.close();
          }
        };
-     } catch (error) {
+      } catch (error) {
        console.error('Error initializing MediaPipe Pose:', error);
        toast({
          title: "Error",
@@ -541,157 +547,157 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
  };
 
 
- return (
-   <Card className="w-full max-w-4xl mx-auto">
-     <CardHeader className="flex flex-row items-center justify-between">
-       <div className="flex items-center gap-2">
-         <Button
-           variant="ghost"
-           size="icon"
-           className="rounded-full bg-buddy-purple hover:bg-buddy-purple-dark"
-           onClick={() => navigate("/home")}
-         >
-           <ArrowLeft size={20} className="text-white" />
-         </Button>
-       <CardTitle className="text-2xl font-bold">
-         {exerciseName} - {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-       </CardTitle>
-       </div>
-     </CardHeader>
-     <CardContent className="space-y-4">
-       <div className="grid grid-cols-2 gap-4">
-         <div className="relative">
-           <video
-             ref={videoRef}
-             className="w-full rounded-lg"
-             playsInline
-             style={{ display: 'block', transform: 'scaleX(-1)' }}
-           />
-           <canvas
-             ref={canvasRef}
-             className="absolute top-0 left-0 w-full h-full"
-             width={640}
-             height={480}
-             style={{ display: 'block', transform: 'scaleX(-1)' }}
-           />
-           {cameraError && (
-             <div className="absolute inset-0 flex items-center justify-center bg-red-100 rounded-lg">
-               <p className="text-red-600 text-center p-4">{cameraError}</p>
-             </div>
-           )}
-         </div>
-         {referenceVideo && (
-           <div className="relative">
-             <video
-               ref={referenceVideoRef}
-               src={referenceVideo}
-               className="w-full rounded-lg"
-               loop
-               muted
-               width={640}
-               height={480}
-             />
-             <canvas
-               ref={referenceCanvasRef}
-               className="absolute top-0 left-0 w-full h-full pointer-events-none"
-               width={640}
-               height={480}
-             />
-           </div>
-         )}
-       </div>
-
-
-       <div className="flex justify-center space-x-4">
-         {!isUserTracking && !isRefTracking ? (
-           <Button onClick={startTracking} className="bg-buddy-purple hover:bg-buddy-purple-dark">
-             Start Workout
-           </Button>
-         ) : (
-           <Button onClick={stopTracking} variant="destructive">
-             Stop Workout
-           </Button>
-         )}
-         <Button
-           onClick={submitScore}
-           disabled={isUserTracking || isRefTracking || userPoseSequence.length === 0 || referencePoseSequence.length === 0}
-           className="bg-buddy-purple hover:bg-buddy-purple-dark"
-         >
-           Calculate Score
-         </Button>
-       </div>
-       {score !== null && bestScore !== null && (
-         <div className="mt-6 p-4 bg-buddy-purple-light/20 rounded-lg">
-           <h3 className="text-lg font-semibold text-center mb-2">Similarity Score</h3>
-           <div className="grid grid-cols-1 gap-4 text-center">
-             <div>
-               <p className="text-2xl font-bold text-buddy-purple">{(score * 100).toFixed(2)}%</p>
-             </div>
-            
-           </div>
-         </div>
-       )}
-     </CardContent>
-   </Card>
- );
-};
-
-
-// Helper functions for drawing landmarks
-const drawConnectors = (
- ctx: CanvasRenderingContext2D,
- landmarks: any,
- connections: any,
- style: { color: string; lineWidth: number }
-) => {
- const { color, lineWidth } = style;
- ctx.strokeStyle = color;
- ctx.lineWidth = lineWidth;
-
-
- for (const [i, j] of connections) {
-   const start = landmarks[i];
-   const end = landmarks[j];
-   if (start && end) {
-     ctx.beginPath();
-     ctx.moveTo(start.x * ctx.canvas.width, start.y * ctx.canvas.height);
-     ctx.lineTo(end.x * ctx.canvas.width, end.y * ctx.canvas.height);
-     ctx.stroke();
-   }
- }
-};
-
-
-const drawLandmarks = (
- ctx: CanvasRenderingContext2D,
- landmarks: any,
- style: { color: string; lineWidth: number }
-) => {
- const { color, lineWidth } = style;
- ctx.strokeStyle = color;
- ctx.lineWidth = lineWidth;
-
-
- for (const landmark of landmarks) {
-   ctx.beginPath();
-   ctx.arc(
-     landmark.x * ctx.canvas.width,
-     landmark.y * ctx.canvas.height,
-     lineWidth * 2,
-     0,
-     2 * Math.PI
-   );
-   ctx.stroke();
- }
-};
-
-
-// POSE_CONNECTIONS is a constant that defines which landmarks should be connected
-const POSE_CONNECTIONS = [
- [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
- [11, 23], [12, 24], [23, 24], // Torso
- [23, 25], [24, 26], [25, 27], [26, 28], // Legs
-];
-
-
-export default WorkoutTracker;
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full bg-buddy-purple hover:bg-buddy-purple-dark"
+            onClick={() => navigate("/home")}
+          >
+            <ArrowLeft size={20} className="text-white" />
+          </Button>
+        <CardTitle className="text-2xl font-bold">
+          {exerciseName} - {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+        </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="relative">
+            <video
+              ref={videoRef}
+              className="w-full rounded-lg"
+              playsInline
+              style={{ display: 'block', transform: 'scaleX(-1)' }}
+            />
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0 w-full h-full"
+              width={640}
+              height={480}
+              style={{ display: 'block', transform: 'scaleX(-1)' }}
+            />
+            {cameraError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-red-100 rounded-lg">
+                <p className="text-red-600 text-center p-4">{cameraError}</p>
+              </div>
+            )}
+          </div>
+          {referenceVideo && (
+            <div className="relative">
+              <video
+                ref={referenceVideoRef}
+                src={referenceVideo}
+                className="w-full rounded-lg"
+                loop
+                muted
+                width={640}
+                height={480}
+              />
+              <canvas
+                ref={referenceCanvasRef}
+                className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                width={640}
+                height={480}
+              />
+            </div>
+          )}
+        </div>
+ 
+ 
+        <div className="flex justify-center space-x-4">
+          {!isUserTracking && !isRefTracking ? (
+            <Button onClick={startTracking} className="bg-buddy-purple hover:bg-buddy-purple-dark">
+              Start Workout
+            </Button>
+          ) : (
+            <Button onClick={stopTracking} variant="destructive">
+              Stop Workout
+            </Button>
+          )}
+          <Button
+            onClick={submitScore}
+            disabled={isUserTracking || isRefTracking || userPoseSequence.length === 0 || referencePoseSequence.length === 0}
+            className="bg-buddy-purple hover:bg-buddy-purple-dark"
+          >
+            Calculate Score
+          </Button>
+        </div>
+        {score !== null && bestScore !== null && (
+          <div className="mt-6 p-4 bg-buddy-purple-light/20 rounded-lg">
+            <h3 className="text-lg font-semibold text-center mb-2">Similarity Score</h3>
+            <div className="grid grid-cols-1 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-buddy-purple">{(score * 100).toFixed(2)}%</p>
+              </div>
+             
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+ };
+ 
+ 
+ // Helper functions for drawing landmarks
+ const drawConnectors = (
+  ctx: CanvasRenderingContext2D,
+  landmarks: any,
+  connections: any,
+  style: { color: string; lineWidth: number }
+ ) => {
+  const { color, lineWidth } = style;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+ 
+ 
+  for (const [i, j] of connections) {
+    const start = landmarks[i];
+    const end = landmarks[j];
+    if (start && end) {
+      ctx.beginPath();
+      ctx.moveTo(start.x * ctx.canvas.width, start.y * ctx.canvas.height);
+      ctx.lineTo(end.x * ctx.canvas.width, end.y * ctx.canvas.height);
+      ctx.stroke();
+    }
+  }
+ };
+ 
+ 
+ const drawLandmarks = (
+  ctx: CanvasRenderingContext2D,
+  landmarks: any,
+  style: { color: string; lineWidth: number }
+ ) => {
+  const { color, lineWidth } = style;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+ 
+ 
+  for (const landmark of landmarks) {
+    ctx.beginPath();
+    ctx.arc(
+      landmark.x * ctx.canvas.width,
+      landmark.y * ctx.canvas.height,
+      lineWidth * 2,
+      0,
+      2 * Math.PI
+    );
+    ctx.stroke();
+  }
+ };
+ 
+ 
+ // POSE_CONNECTIONS is a constant that defines which landmarks should be connected
+ const POSE_CONNECTIONS = [
+  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
+  [11, 23], [12, 24], [23, 24], // Torso
+  [23, 25], [24, 26], [25, 27], [26, 28], // Legs
+ ];
+ 
+ 
+ export default WorkoutTracker;
