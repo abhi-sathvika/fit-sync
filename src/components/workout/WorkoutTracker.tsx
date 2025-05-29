@@ -20,6 +20,7 @@ function loadPoseScript(): Promise<void> {
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js';
     script.async = true;
+    script.crossOrigin = 'anonymous';    // Add CORS support
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Failed to load MediaPipe Pose script'));
     document.body.appendChild(script);
@@ -287,13 +288,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
          locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
        });
 
-
-       // Wait for WASM to be ready
-       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-
         await userPose.initialize();
-
 
        userPose.setOptions({
          modelComplexity: 1,
