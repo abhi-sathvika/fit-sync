@@ -12,13 +12,14 @@ import { useNavigate } from 'react-router-dom';
 import { getExerciseVideo } from '@/config/exercises';
 
 
-// Dynamically load the MediaPipe Pose script
+
+
 function loadPoseScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if ((window as any).Pose) return resolve();
 
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js';
+    script.src = 'https://www.gstatic.com/mediapipe/pose/pose.js';
     script.async = true;
     script.crossOrigin = 'anonymous';    // Add CORS support
     script.onload = () => resolve();
@@ -26,6 +27,26 @@ function loadPoseScript(): Promise<void> {
     document.body.appendChild(script);
   });
 }
+
+
+// Dynamically load the MediaPipe Pose script
+// function loadPoseScript(): Promise<void> {
+//   return new Promise((resolve, reject) => {
+//     if ((window as any).Pose) return resolve();
+
+//     const script = document.createElement('script');
+//     script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js';
+//     script.async = true;
+//     script.crossOrigin = 'anonymous';    // Add CORS support
+//     script.onload = () => resolve();
+//     script.onerror = () => reject(new Error('Failed to load MediaPipe Pose script'));
+//     document.body.appendChild(script);
+//   });
+// }
+
+
+
+
 
 interface WorkoutTrackerProps {
   exerciseName: string;
