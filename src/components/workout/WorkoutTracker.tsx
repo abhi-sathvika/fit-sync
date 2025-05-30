@@ -187,8 +187,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         const Pose = (window as any).Pose;
 
        // Initialize the Pose detector
+      //  referencePose = new Pose({
+      //    locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
+      //  });
        referencePose = new Pose({
-         locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
+         locateFile: (file: string) => `/mediapipe/${file}`,
        });
 
         await referencePose.initialize();
@@ -305,8 +308,11 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
         const Pose = (window as any).Pose;
 
        // Initialize the Pose detector
+      //  userPose = new Pose({
+      //    locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
+      //  });
        userPose = new Pose({
-         locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
+         locateFile: (file: string) => `/mediapipe/${file}`,
        });
 
         await userPose.initialize();
