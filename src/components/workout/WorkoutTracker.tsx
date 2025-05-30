@@ -19,7 +19,7 @@ function loadPoseScript(): Promise<void> {
     if ((window as any).Pose) return resolve();
 
     const script = document.createElement('script');
-    script.src = 'https://www.gstatic.com/mediapipe/pose/pose.js';
+    script.src = '/mediapipe/pose.js';  // Load from local public directory
     script.async = true;
     script.crossOrigin = 'anonymous';    // Add CORS support
     script.onload = () => resolve();
