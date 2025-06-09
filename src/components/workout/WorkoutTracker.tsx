@@ -170,7 +170,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
    let referencePose: any = null;
 
 
-   const initializePose = async () => {
+   const initializeReferencePose = async () => {
      try {
        // First ensure the reference video is loaded
        if (referenceVideoRef.current) {
@@ -182,29 +182,8 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
          });
        }
 
-       // Load the Pose script and get the constructor
-        await loadPoseScript();
-        const Pose = (window as any).Pose;
-
-       // Initialize the Pose detector
-      //  referencePose = new Pose({
-      //    locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
-      //  });
-       referencePose = new Pose({
-         locateFile: (file: string) => `/mediapipe/${file}`,
-       });
-
-        await referencePose.initialize();
-      
-       referencePose.setOptions({
-         modelComplexity: 1,
-         smoothLandmarks: true,
-         enableSegmentation: true,
-         smoothSegmentation: true,
-         minDetectionConfidence: 0.5,
-         minTrackingConfidence: 0.5,
-       });
-
+       // Initialize pose with the new function
+       referencePose = await initPose();
 
        referencePose.onResults((results) => {
          if (!referenceCanvasRef.current) return;
@@ -280,7 +259,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
    };
 
 
-   initializePose();
+   initializeReferencePose();
 
 
    return () => {
@@ -301,31 +280,10 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
    let userPose: any = null;
 
 
-   const initializePose = async () => {
+   const initializeUserPose = async () => {
       try {
-       // Load the Pose script and get the constructor
-        await loadPoseScript();
-        const Pose = (window as any).Pose;
-
-       // Initialize the Pose detector
-      //  userPose = new Pose({
-      //    locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
-      //  });
-       userPose = new Pose({
-         locateFile: (file: string) => `/mediapipe/${file}`,
-       });
-
-        await userPose.initialize();
-
-       userPose.setOptions({
-         modelComplexity: 1,
-         smoothLandmarks: true,
-         enableSegmentation: true,
-         smoothSegmentation: true,
-         minDetectionConfidence: 0.5,
-         minTrackingConfidence: 0.5,
-       });
-
+       // Initialize pose with the new function
+       userPose = await initPose();
 
        userPose.onResults((results) => {
          if (!canvasRef.current) return;
@@ -398,7 +356,7 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
    };
 
 
-   initializePose();
+   initializeUserPose();
  }, [isUserTracking, toast]);
 
 
@@ -720,6 +678,35 @@ const WorkoutTracker = ({ exerciseName, difficulty }: WorkoutTrackerProps) => {
   [11, 23], [12, 24], [23, 24], // Torso
   [23, 25], [24, 26], [25, 27], [26, 28], // Legs
  ];
+ 
+ 
+ // Wrap Pose init inside an async function
+ async function initPose() {
+   try {
+     await loadPoseScript(); // Ensure script is fully loaded
+     const Pose = (window as any).Pose;
+
+     const pose = new Pose({
+       locateFile: (file: string) => `/mediapipe/${file}`,
+     });
+
+     await pose.initialize(); // Ensure it's fully initialized
+
+     pose.setOptions({
+       modelComplexity: 1,
+       smoothLandmarks: true,
+       enableSegmentation: true,
+       smoothSegmentation: true,
+       minDetectionConfidence: 0.5,
+       minTrackingConfidence: 0.5,
+     });
+
+     return pose;
+   } catch (error) {
+     console.error("Error initializing MediaPipe Pose:", error);
+     throw error;
+   }
+ }
  
  
  export default WorkoutTracker;
